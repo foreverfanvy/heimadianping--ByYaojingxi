@@ -29,8 +29,4 @@ public class LoginInterceptor implements HandlerInterceptor {
         //有用户放行
         return true;
     }
-    @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-
-    }
 }
