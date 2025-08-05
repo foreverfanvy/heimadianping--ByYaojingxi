@@ -23,7 +23,7 @@ public class RedisIdWorker {
         long nowsecond = now.toEpochSecond(ZoneOffset.UTC);
         long timestamp = nowsecond - second;
         //2.序列号
-        String date = now.format(DateTimeFormatter.ofPattern("yyyy:MM:dd"));
+        String date = now.format(DateTimeFormatter.ofPattern("yyyy:MM:dd:"));
         long count = stringRedisTemplate.opsForValue().increment("icr:" + keyPrefix + ":" + date);
         //3.拼接
         return timestamp << COUNT_BITS | count;
