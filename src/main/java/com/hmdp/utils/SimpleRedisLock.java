@@ -1,9 +1,13 @@
 package com.hmdp.utils;
 
 import cn.hutool.core.lang.UUID;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class SimpleRedisLock implements ILock {
@@ -11,6 +15,13 @@ public class SimpleRedisLock implements ILock {
     private StringRedisTemplate stringRedisTemplate;
     private static final String KEY_PREFIX = "lock:";
     private static final String ID_PREFIX = UUID.randomUUID().toString(true) + "";//使用UUID生成一个唯一的ID前缀，避免不同锁之间的冲突
+    private static final DefaultRedisScript<Long> unlockScript;
+
+    static {
+        unlockScript = new DefaultRedisScript<>();
+        unlockScript.setLocation(new ClassPathResource("unlock.lua"));
+        unlockScript.setResultType(Long.class);
+    }
 
     //进行构造人工注入
     public SimpleRedisLock(StringRedisTemplate stringRedisTemplate, String name) {
@@ -32,14 +43,22 @@ public class SimpleRedisLock implements ILock {
 
     @Override
     public void unLock() {
-        //获取线程标识
-        String ThreadID = ID_PREFIX + Thread.currentThread().getId() + "";
-        //获取锁的唯一标识
-        String lockId = stringRedisTemplate.opsForValue().get(KEY_PREFIX + name);
-        if (ThreadID.equals(lockId)) {
-            //释放锁
-            stringRedisTemplate.delete(KEY_PREFIX + name);
-        }
-
+        //执行lua脚本
+        stringRedisTemplate.execute(unlockScript,
+                Collections.singletonList(KEY_PREFIX + name),
+                ID_PREFIX + Thread.currentThread().getId() + "");
     }
+    //    @Override
+    //    public void unLock() {
+    //        //获取线程标识
+    //        String ThreadID = ID_PREFIX + Thread.currentThread().getId() + "";
+    //        //获取锁的唯一标识
+    //        String lockId = stringRedisTemplate.opsForValue().get(KEY_PREFIX + name);
+    //        if (ThreadID.equals(lockId)) {
+    //            //释放锁
+    //            stringRedisTemplate.delete(KEY_PREFIX + name);
+    //        }
+    //
+    //    }
+
 }
